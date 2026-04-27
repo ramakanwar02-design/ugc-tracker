@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080808">
+<title>UGC Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --ink:#080808;--ink2:#111;--ink3:#191919;--ink4:#232323;--ink5:#2e2e2e;
+  --wire:rgba(255,255,255,0.06);--wire2:rgba(255,255,255,0.11);--wire3:rgba(255,255,255,0.18);
+  --dust:#9a9a9a;--fog:#565656;--pale:#e8e4df;--cream:#f5f0eb;
+  --gold:#c9a96e;--gold2:rgba(201,169,110,0.12);--gold3:rgba(201,169,110,0.22);--gold4:rgba(201,169,110,0.05);
+  --lime:#b8e04a;--lime2:rgba(184,224,74,0.1);--lime3:rgba(184,224,74,0.2);
+  --rose:#e85d6e;--rose2:rgba(232,93,110,0.1);--rose3:rgba(232,93,110,0.22);
+  --sage:#7ab89a;--sage2:rgba(122,184,154,0.1);--sage3:rgba(122,184,154,0.22);
+  --amb:#e8a44a;--amb2:rgba(232,164,74,0.1);--amb3:rgba(232,164,74,0.22);
+  --sky:#6ab0d8;--sky2:rgba(106,176,216,0.1);--sky3:rgba(106,176,216,0.22);
+  --lav:#9b7fe8;
+  --r:16px;--rs:11px;--rx:22px;--rxx:30px;
+  --ff:'Cormorant Garamond',Georgia,serif;--fb:'Outfit',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--ink);overflow:hidden;font-family:var(--fb);color:var(--pale)}
+.app{width:100%;max-width:430px;height:100svh;margin:0 auto;position:relative;overflow:hidden}
+.app::after{content:'';position:fixed;inset:0;max-width:430px;pointer-events:none;z-index:999;opacity:.35;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")}
+
+.page{position:absolute;inset:0;display:flex;flex-direction:column;transition:transform .42s cubic-bezier(.76,0,.24,1),opacity .38s;overflow:hidden;background:var(--ink)}
+.page.out-left{transform:translateX(-100%);opacity:0;pointer-events:none}
+.page.out-right{transform:translateX(105%);opacity:0;pointer-events:none}
+.page.hidden{display:none}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:52px}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── LOADING ── */
+#pg-loading{align-items:center;justify-content:center;gap:16px}
+.load-logo{font-family:var(--ff);font-size:42px;font-weight:300;color:var(--cream);letter-spacing:-.01em}
+.load-logo em{font-style:italic;color:var(--gold)}
+.load-dot{display:flex;gap:6px;margin-top:8px}
+.load-dot span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:dotPulse 1.2s ease-in-out infinite}
+.load-dot span:nth-child(2){animation-delay:.2s}
+.load-dot span:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ── SPLASH / LOGIN ── */
+#pg-splash{justify-content:flex-end}
+.splash-bg{position:absolute;inset:0;overflow:hidden}
+.splash-grid{position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--wire) 59px,var(--wire) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--wire) 59px,var(--wire) 60px);opacity:.5}
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px)}
+.o1{width:340px;height:340px;top:-80px;left:-80px;background:radial-gradient(circle,rgba(201,169,110,.14) 0%,transparent 70%)}
+.o2{width:260px;height:260px;bottom:120px;right:-50px;background:radial-gradient(circle,rgba(184,224,74,.07) 0%,transparent 70%)}
+.splash-body{position:relative;z-index:2;padding:0 28px calc(52px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.splash-inner{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:44px}
+.s-eyebrow{display:inline-flex;align-items:center;gap:7px;margin-bottom:20px;animation:riseIn .7s .1s both}
+.s-rule{width:28px;height:1px;background:var(--gold)}
+.s-etext{font-size:10px;letter-spacing:.22em;color:var(--gold);font-weight:500;text-transform:uppercase}
+.s-title{font-family:var(--ff);font-size:62px;font-weight:300;line-height:.95;color:var(--cream);margin-bottom:6px;animation:riseIn .7s .18s both}
+.s-title em{font-style:italic;color:var(--gold)}
+.s-handle{font-size:12px;color:var(--fog);letter-spacing:.1em;margin-bottom:16px;animation:riseIn .7s .24s both}
+.s-desc{font-size:14px;color:var(--dust);line-height:1.7;max-width:290px;font-weight:300;margin-bottom:28px;animation:riseIn .7s .3s both}
+.s-pips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:38px;animation:riseIn .7s .35s both}
+.pip{padding:4px 10px;border-radius:99px;font-size:10px;letter-spacing:.05em;border:1px solid}
+.s-ctas{display:flex;flex-direction:column;gap:10px;animation:riseIn .7s .42s both}
+.cta-gold{padding:17px 22px;background:var(--gold);border:none;border-radius:var(--r);font-family:var(--ff);font-size:18px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:transform .18s,opacity .18s;letter-spacing:.03em}
+.cta-gold:active{transform:scale(.97);opacity:.9}
+.cta-ghost{padding:17px 22px;background:transparent;border:1px solid var(--wire3);border-radius:var(--r);font-family:var(--ff);font-size:18px;font-weight:400;color:var(--pale);cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:transform .18s,background .18s}
+.cta-ghost:active{transform:scale(.97);background:var(--ink3)}
+.cta-arr{font-size:18px;opacity:.65}
+
+/* Google login btn */
+.g-btn{padding:16px 22px;background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--r);font-family:var(--fb);font-size:14px;font-weight:400;color:var(--pale);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;letter-spacing:.02em;margin-top:0}
+.g-btn:active{transform:scale(.97);background:var(--ink4)}
+.g-icon{width:18px;height:18px;flex-shrink:0}
+.g-divider{display:flex;align-items:center;gap:10px;margin:6px 0}
+.g-div-line{flex:1;height:1px;background:var(--wire2)}
+.g-div-txt{font-size:10px;color:var(--fog);letter-spacing:.1em;text-transform:uppercase}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SHARED HEADER ── */
+.pg-hdr{padding:54px 20px 14px;display:flex;align-items:flex-end;justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--wire)}
+.hdr-l{}
+.pg-eye{font-size:10px;letter-spacing:.18em;color:var(--fog);text-transform:uppercase;font-weight:500;margin-bottom:4px}
+.pg-ttl{font-family:var(--ff);font-size:30px;font-weight:300;color:var(--cream);line-height:1;letter-spacing:-.01em}
+.pg-ttl em{font-style:italic;color:var(--gold)}
+.pg-sub{font-size:11px;color:var(--fog);margin-top:4px}
+.hdr-r{display:flex;gap:8px;align-items:center;padding-bottom:2px}
+.sp{padding:5px 12px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.07em;display:flex;align-items:center;gap:5px;border:1px solid;text-transform:uppercase;white-space:nowrap}
+.sp-ok{background:var(--sage2);color:var(--sage);border-color:var(--sage3)}
+.sp-warn{background:var(--amb2);color:var(--amb);border-color:var(--amb3)}
+.sp-danger{background:var(--rose2);color:var(--rose);border-color:var(--rose3)}
+.sp-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.sqb{width:36px;height:36px;background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s}
+.sqb:active{transform:scale(.88);background:var(--ink4)}
+.sqb svg{width:15px;height:15px;stroke:var(--dust);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ghost-btn{padding:7px 13px;background:transparent;border:1px solid var(--wire2);border-radius:99px;font-size:11px;color:var(--dust);cursor:pointer;font-family:var(--fb);display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;letter-spacing:.03em}
+.ghost-btn:active{background:var(--ink3);transform:scale(.94)}
+.ghost-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── USER CHIP ── */
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 4px;background:var(--ink3);border:1px solid var(--wire2);border-radius:99px;cursor:pointer;transition:all .2s}
+.user-chip:active{background:var(--ink4)}
+.user-av{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--wire2)}
+.user-av-ph{width:26px;height:26px;border-radius:50%;background:var(--gold2);border:1px solid var(--gold3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--gold);font-family:var(--fb)}
+.user-name{font-size:11px;color:var(--dust);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── HERO ── */
+.hero-zone{padding:20px 20px 12px}
+.hero-card{background:linear-gradient(135deg,var(--ink3) 0%,var(--ink2) 100%);border:1px solid var(--wire2);border-radius:var(--rx);padding:22px;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:-1px;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,var(--gold3),transparent)}
+.hero-card::after{content:'';position:absolute;bottom:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle,var(--gold2) 0%,transparent 70%);pointer-events:none}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.hero-lbl{font-size:10px;letter-spacing:.16em;color:var(--fog);text-transform:uppercase;margin-bottom:6px}
+.hero-num{font-family:var(--ff);font-size:60px;font-weight:300;line-height:1;color:var(--cream)}
+.hero-num em{font-size:26px;color:var(--fog);font-style:normal;font-weight:300}
+.hero-r{text-align:right}
+.hero-frac{font-family:var(--ff);font-size:22px;font-weight:400;color:var(--pale)}
+.hero-fsub{font-size:11px;color:var(--fog);margin-top:2px;letter-spacing:.04em}
+.hero-earn{font-size:13px;color:var(--gold);font-weight:400;margin-top:10px}
+.prog-track{height:2px;background:var(--ink5);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:var(--gold);transition:width .55s cubic-bezier(.4,0,.2,1)}
+.prog-warn{background:var(--amb)}
+.prog-danger{background:var(--rose)}
+.prog-lbls{display:flex;justify-content:space-between;margin-top:8px}
+.prog-lbl{font-size:10px;color:var(--fog);letter-spacing:.04em}
+
+/* ── REMINDER ── */
+.rem-zone{padding:0 20px 12px}
+.rem{border-radius:var(--r);padding:12px 14px;display:flex;gap:10px;align-items:flex-start;border:1px solid;animation:riseIn .3s ease}
+.rem-ok{background:rgba(122,184,154,.06);border-color:var(--sage3)}
+.rem-warn{background:rgba(232,164,74,.06);border-color:var(--amb3)}
+.rem-danger{background:rgba(232,93,110,.07);border-color:var(--rose3)}
+.rem-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:600}
+.rem-ok .rem-ico{background:rgba(122,184,154,.15);color:var(--sage)}
+.rem-warn .rem-ico{background:rgba(232,164,74,.15);color:var(--amb)}
+.rem-danger .rem-ico{background:rgba(232,93,110,.15);color:var(--rose)}
+.rem-ttl{font-size:12px;font-weight:600;letter-spacing:.04em;margin-bottom:2px}
+.rem-ok .rem-ttl{color:var(--sage)}
+.rem-warn .rem-ttl{color:var(--amb)}
+.rem-danger .rem-ttl{color:var(--rose)}
+.rem-body{font-size:11px;color:var(--dust);line-height:1.55;font-weight:300}
+
+/* ── STATS ── */
+.stat-strip{padding:0 20px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.sbox{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--rs);padding:10px 7px;text-align:center}
+.sbox-l{font-size:9px;letter-spacing:.12em;color:var(--fog);text-transform:uppercase;margin-bottom:4px}
+.sbox-v{font-family:var(--ff);font-size:21px;font-weight:400;color:var(--pale)}
+.sbox-g .sbox-v{color:var(--gold)}
+
+/* ── SECTION ── */
+.sec{padding:0 20px 12px}
+.sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sec-rule{flex:1;height:1px;background:var(--wire)}
+.sec-lbl{font-size:9px;letter-spacing:.18em;color:var(--fog);text-transform:uppercase;font-weight:500;white-space:nowrap}
+
+/* ── CAMPAIGN CARDS ── */
+.camp-stack{display:flex;flex-direction:column;gap:8px}
+.camp-card{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:14px;position:relative;overflow:hidden;transition:border-color .25s}
+.camp-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--cc,var(--fog));opacity:.7}
+.camp-card.done-all{border-color:rgba(201,169,110,.22)}
+.camp-card.done-all::before{opacity:1;background:var(--gold)}
+.cc-r1{display:flex;align-items:center;gap:9px;margin-bottom:10px;padding-left:11px}
+.cc-name{font-family:var(--ff);font-size:16px;font-weight:400;color:var(--pale);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-bdg{font-size:9px;font-weight:600;padding:3px 9px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;border:1px solid}
+.cb-done{background:var(--gold2);color:var(--gold);border-color:var(--gold3)}
+.cb-part{background:var(--amb2);color:var(--amb);border-color:var(--amb3)}
+.cb-none{background:var(--ink5);color:var(--fog);border-color:var(--wire)}
+.cc-r2{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-left:11px}
+.cc-btr{flex:1;height:3px;background:var(--ink5);border-radius:99px;overflow:hidden}
+.cc-btf{height:100%;border-radius:99px;transition:width .4s}
+.cc-pct{font-size:11px;color:var(--fog);min-width:28px;text-align:right}
+.cc-r3{display:flex;align-items:center;justify-content:space-between;padding-left:11px}
+.cc-earn{font-size:12px;color:var(--dust)}
+.cc-earn b{color:var(--gold);font-weight:400}
+.cc-tbd{font-size:11px;color:var(--fog);font-style:italic}
+.vd-row{display:flex;gap:5px}
+.vd{width:30px;height:30px;border-radius:8px;border:1px solid var(--wire2);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;background:var(--ink4);color:var(--fog);transition:all .15s;user-select:none;-webkit-user-select:none;font-family:var(--fb);font-weight:500}
+.vd:active{transform:scale(.82)}
+.vd.on{background:var(--gold2);border-color:var(--gold3);color:var(--gold)}
+
+/* ── EARN TABLE ── */
+.earn-tbl{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden}
+.earn-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--wire)}
+.earn-row:last-child{border:none}
+.er-name{font-size:12px;color:var(--dust);font-weight:300}
+.er-r{display:flex;align-items:center;gap:10px}
+.er-got{font-family:var(--ff);font-size:15px;font-weight:400;color:var(--pale)}
+.er-miss{font-size:11px;color:var(--rose)}
+.er-tbd{font-size:11px;color:var(--fog);font-style:italic}
+.tot-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:7px}
+.tot-tile{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--rs);padding:11px 9px;text-align:center}
+.tot-lbl{font-size:9px;letter-spacing:.12em;color:var(--fog);text-transform:uppercase;margin-bottom:4px}
+.tot-v{font-family:var(--ff);font-size:19px;font-weight:400}
+.tv-g{color:var(--gold)}.tv-a{color:var(--amb)}.tv-p{color:var(--pale)}
+
+.reset-wrap{padding:6px 20px 2px;display:flex;justify-content:center}
+.reset-link{background:none;border:1px solid var(--wire);border-radius:99px;color:var(--fog);font-size:11px;padding:7px 18px;cursor:pointer;font-family:var(--fb);letter-spacing:.05em;transition:all .2s}
+.reset-link:active{background:var(--ink3)}
+
+/* ── SETTINGS ── */
+.set-body{padding:18px 20px}
+.set-g-lbl{font-size:9px;letter-spacing:.18em;color:var(--fog);text-transform:uppercase;margin-bottom:10px}
+.set-panel{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--wire)}
+.set-row:last-child{border:none}
+.set-rl{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.set-stripe{width:4px;height:36px;border-radius:2px;flex-shrink:0}
+.set-cname{font-family:var(--ff);font-size:15px;font-weight:400;color:var(--pale);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set-cmeta{font-size:11px;color:var(--fog);margin-top:2px;font-weight:300}
+.set-acts{display:flex;gap:6px}
+.set-btn{padding:6px 11px;border-radius:8px;font-size:11px;cursor:pointer;border:1px solid;font-family:var(--fb);transition:transform .15s;letter-spacing:.03em}
+.set-btn:active{transform:scale(.9)}
+.set-edit{background:var(--ink4);border-color:var(--wire2);color:var(--dust)}
+.set-del{background:var(--rose2);border-color:var(--rose3);color:var(--rose)}
+.add-c-btn{width:100%;padding:14px;background:transparent;border:1px dashed var(--wire3);border-radius:var(--r);color:var(--gold);font-size:14px;font-family:var(--ff);font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.04em}
+.add-c-btn:active{background:var(--gold4);transform:scale(.98)}
+.add-c-btn::before{content:'+';font-size:20px;line-height:1}
+
+/* ── ACCOUNT SECTION IN SETTINGS ── */
+.acct-card{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.acct-av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--wire2)}
+.acct-av-ph{width:44px;height:44px;border-radius:50%;background:var(--gold2);border:1px solid var(--gold3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--gold);flex-shrink:0}
+.acct-info{flex:1;min-width:0}
+.acct-name{font-family:var(--ff);font-size:17px;font-weight:400;color:var(--pale);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-email{font-size:11px;color:var(--fog);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-sync{font-size:10px;color:var(--sage);margin-top:4px;letter-spacing:.03em}
+.sign-out-btn{padding:8px 14px;background:var(--rose2);border:1px solid var(--rose3);border-radius:var(--rs);font-size:11px;color:var(--rose);cursor:pointer;font-family:var(--fb);transition:all .2s;white-space:nowrap}
+.sign-out-btn:active{transform:scale(.93)}
+
+/* ── PAYMENTS ── */
+.pay-tiles{padding:18px 20px 12px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.pay-tile{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:15px;position:relative;overflow:hidden}
+.pay-tile::after{content:'';position:absolute;bottom:-18px;right:-18px;width:70px;height:70px;border-radius:50%;opacity:.07}
+.pt-r::after{background:var(--sage)}.pt-p::after{background:var(--amb)}.pt-l::after{background:var(--rose)}.pt-m::after{background:var(--sky)}
+.pt-lbl{font-size:9px;letter-spacing:.15em;color:var(--fog);text-transform:uppercase;margin-bottom:7px}
+.pt-val{font-family:var(--ff);font-size:26px;font-weight:300}
+.pv-s{color:var(--sage)}.pv-a{color:var(--amb)}.pv-r{color:var(--rose)}.pv-k{color:var(--sky)}
+.add-pay-btn{margin:0 20px 14px;width:calc(100% - 40px);padding:14px;background:transparent;border:1px dashed var(--wire3);border-radius:var(--r);color:var(--gold);font-size:14px;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.04em}
+.add-pay-btn:active{background:var(--gold4);transform:scale(.98)}
+.add-pay-btn::before{content:'+';font-size:18px;line-height:1}
+.pay-entries{padding:0 20px;display:flex;flex-direction:column;gap:7px}
+.mo-sep{display:flex;align-items:center;gap:9px;padding:6px 0 3px}
+.mo-line{flex:1;height:1px;background:var(--wire)}
+.mo-lbl{font-size:9px;letter-spacing:.15em;color:var(--fog);text-transform:uppercase}
+.pay-entry{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:13px;display:flex;align-items:center;gap:11px}
+.pe-acc{width:3px;height:42px;border-radius:2px;flex-shrink:0}
+.pe-info{flex:1;min-width:0}
+.pe-brand{font-family:var(--ff);font-size:15px;font-weight:400;color:var(--pale)}
+.pe-date{font-size:11px;color:var(--fog);margin-top:2px;font-weight:300}
+.pe-note{font-size:11px;color:var(--dust);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic}
+.pe-r{text-align:right;flex-shrink:0}
+.pe-amt{font-family:var(--ff);font-size:19px;font-weight:400;color:var(--pale)}
+.pe-chip{font-size:9px;font-weight:600;padding:3px 8px;border-radius:99px;margin-top:3px;display:inline-block;letter-spacing:.07em;text-transform:uppercase;border:1px solid}
+.pch-r{background:var(--sage2);color:var(--sage);border-color:var(--sage3)}
+.pch-p{background:var(--amb2);color:var(--amb);border-color:var(--amb3)}
+.pch-l{background:var(--rose2);color:var(--rose);border-color:var(--rose3)}
+.pe-del{width:28px;height:28px;border-radius:8px;background:var(--rose2);border:1px solid var(--rose3);color:var(--rose);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;flex-shrink:0;transition:transform .15s}
+.pe-del:active{transform:scale(.82)}
+.empty-pay{padding:48px 20px;text-align:center}
+.empty-ico{font-family:var(--ff);font-size:46px;font-weight:300;color:var(--fog);font-style:italic;margin-bottom:12px}
+.empty-txt{font-size:13px;color:var(--fog);line-height:1.7;font-weight:300}
+
+/* ── ANALYTICS ── */
+.analytics-header{padding:18px 20px 10px}
+.platform-tabs{display:flex;gap:6px;margin-bottom:16px}
+.ptab{flex:1;padding:10px;background:var(--ink3);border:1px solid var(--wire);border-radius:var(--rs);font-size:12px;font-weight:500;color:var(--fog);cursor:pointer;text-align:center;transition:all .2s;letter-spacing:.03em}
+.ptab.active-ig{background:var(--rose2);border-color:var(--rose3);color:var(--rose)}
+.ptab.active-tt{background:var(--sky2);border-color:var(--sky3);color:var(--sky)}
+.chart-card{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:16px;margin-bottom:10px;position:relative}
+.chart-title{font-size:10px;letter-spacing:.15em;color:var(--fog);text-transform:uppercase;margin-bottom:14px}
+.chart-wrap{position:relative;width:100%}
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.met-card{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--rs);padding:12px}
+.met-lbl{font-size:9px;letter-spacing:.14em;color:var(--fog);text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.met-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.met-val{font-family:var(--ff);font-size:24px;font-weight:300;color:var(--pale)}
+.met-sub{font-size:10px;color:var(--fog);margin-top:2px}
+.top-video-list{display:flex;flex-direction:column;gap:7px}
+.tv-card{background:var(--ink3);border:1px solid var(--wire);border-radius:var(--r);padding:13px;display:flex;align-items:center;gap:12px}
+.tv-rank{font-family:var(--ff);font-size:20px;font-weight:300;color:var(--fog);min-width:24px;text-align:center}
+.tv-info{flex:1;min-width:0}
+.tv-camp{font-family:var(--ff);font-size:14px;font-weight:400;color:var(--pale);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-date{font-size:11px;color:var(--fog);margin-top:2px}
+.tv-plat{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;border:1px solid;letter-spacing:.05em;text-transform:uppercase}
+.tv-ig{background:var(--rose2);color:var(--rose);border-color:var(--rose3)}
+.tv-tt{background:var(--sky2);color:var(--sky);border-color:var(--sky3)}
+.tv-stats{text-align:right;flex-shrink:0}
+.tv-views{font-family:var(--ff);font-size:17px;font-weight:400;color:var(--gold)}
+.tv-eng{font-size:10px;color:var(--fog);margin-top:2px}
+.add-perf-btn{width:100%;padding:13px;background:transparent;border:1px dashed var(--wire3);border-radius:var(--r);color:var(--gold);font-size:13px;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;margin-bottom:8px}
+.add-perf-btn:active{background:var(--gold4);transform:scale(.98)}
+.add-perf-btn::before{content:'+';font-size:17px;line-height:1}
+.no-data{padding:32px 10px;text-align:center;font-size:13px;color:var(--fog);font-weight:300;font-style:italic}
+
+/* ── MODALS ── */
+.overlay{position:absolute;inset:0;background:rgba(4,4,4,.88);z-index:400;display:flex;align-items:flex-end}
+.overlay.hidden{display:none}
+.modal{background:var(--ink2);border-radius:var(--rxx) var(--rxx) 0 0;border-top:1px solid var(--wire2);border-left:1px solid var(--wire);border-right:1px solid var(--wire);padding:20px 20px calc(28px + env(safe-area-inset-bottom));width:100%;animation:sheetUp .32s cubic-bezier(.4,0,.2,1);max-height:90svh;overflow-y:auto;position:relative}
+.modal::before{content:'';position:absolute;top:-1px;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,var(--gold3),transparent)}
+.modal::-webkit-scrollbar{display:none}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.drag-pill{width:34px;height:3px;background:var(--ink5);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-family:var(--ff);font-size:24px;font-weight:300;color:var(--cream);margin-bottom:18px}
+.mf{margin-bottom:13px}
+.mf label{display:block;font-size:9px;letter-spacing:.15em;color:var(--fog);text-transform:uppercase;margin-bottom:5px}
+.mf input,.mf select{width:100%;background:var(--ink3);border:1px solid var(--wire2);border-radius:var(--rs);padding:11px 13px;font-size:14px;color:var(--pale);outline:none;font-family:var(--fb);font-weight:300;transition:border-color .2s;-webkit-appearance:none}
+.mf input::placeholder{color:var(--fog)}
+.mf input:focus,.mf select:focus{border-color:var(--gold)}
+.mf select option{background:var(--ink3);color:var(--pale)}
+.mf2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.sw{width:28px;height:28px;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:all .18s}
+.sw.sel{border-color:var(--cream);transform:scale(1.12)}
+.modal-acts{display:flex;gap:10px;margin-top:20px}
+.m-save{flex:1;padding:14px;background:var(--gold);border:none;border-radius:var(--rs);font-family:var(--ff);font-size:17px;font-weight:400;color:var(--ink);cursor:pointer;transition:transform .15s;letter-spacing:.03em}
+.m-save:active{transform:scale(.97)}
+.m-cancel{padding:14px 18px;background:var(--ink4);border:1px solid var(--wire2);border-radius:var(--rs);font-family:var(--fb);font-size:13px;color:var(--dust);cursor:pointer;transition:all .15s}
+.m-cancel:active{background:var(--ink5)}
+
+/* sync indicator */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--sage);flex-shrink:0;animation:syncPulse 2s ease-in-out infinite}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-txt{font-size:10px;color:var(--sage);letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LOADING -->
+<div class="page" id="pg-loading">
+  <div class="load-logo">UGC<em>.</em></div>
+  <div class="load-dot"><span></span><span></span><span></span></div>
+</div>
+
+<!-- SPLASH / LOGIN -->
+<div class="page hidden" id="pg-splash">
+  <div class="splash-bg">
+    <div class="splash-grid"></div>
+    <div class="orb o1"></div><div class="orb o2"></div>
+  </div>
+  <div class="splash-body" style="flex:1;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)">
+    <div class="splash-inner">
+      <div class="s-eyebrow"><span class="s-rule"></span><span class="s-etext">Creator Dashboard</span></div>
+      <div class="s-title">UGC<br><em>Tracker</em></div>
+      <div class="s-handle">@ugcwithrama · Rama</div>
+      <div class="s-desc">Daily uploads, campaign earnings,<br>analytics & payments — all in one place.</div>
+      <div class="s-pips" id="splash-pips"></div>
+    </div>
+    <div class="s-ctas">
+      <button class="cta-gold" onclick="goTo('pg-ugc','right')">UGC Tracker <span class="cta-arr">→</span></button>
+      <button class="cta-ghost" onclick="goTo('pg-pay','right')">Payment Tracker <span class="cta-arr">→</span></button>
+      <div class="g-divider"><div class="g-div-line"></div><div class="g-div-txt">or sign in to sync data</div><div class="g-div-line"></div></div>
+      <button class="g-btn" onclick="signInGoogle()">
+        <svg class="g-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- UGC TRACKER -->
+<div class="page hidden" id="pg-ugc">
+  <div class="pg-hdr">
+    <div class="hdr-l">
+      <div class="pg-eye" id="ugc-dow">Monday</div>
+      <div class="pg-ttl" id="ugc-date">April <em>27</em></div>
+      <div class="pg-sub" id="ugc-clock">—</div>
+    </div>
+    <div class="hdr-r">
+      <div class="sp sp-ok" id="ugc-chip"><span class="sp-dot"></span><span id="chip-txt">On track</span></div>
+      <div class="sqb" onclick="goTo('pg-settings','right')" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      <div class="sqb" onclick="goTo('pg-splash','left')" title="Home"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    </div>
+  </div>
+  <div class="scroll">
+    <div class="hero-zone"><div class="hero-card">
+      <div class="hero-top">
+        <div><div class="hero-lbl">completion</div><div class="hero-num" id="h-pct">0<em>%</em></div></div>
+        <div class="hero-r"><div class="hero-frac" id="h-frac">0/0</div><div class="hero-fsub">videos uploaded</div><div class="hero-earn" id="h-earn">$0 earned today</div></div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+      <div class="prog-lbls"><span class="prog-lbl" id="pl-l">0 done</span><span class="prog-lbl" id="pl-r">0 remaining</span></div>
+    </div></div>
+    <div class="rem-zone" id="rem-zone"></div>
+    <div class="stat-strip">
+      <div class="sbox"><div class="sbox-l">Done</div><div class="sbox-v" id="sv-d">0</div></div>
+      <div class="sbox"><div class="sbox-l">Left</div><div class="sbox-v" id="sv-l">0</div></div>
+      <div class="sbox"><div class="sbox-l">Rate</div><div class="sbox-v" id="sv-r">0%</div></div>
+      <div class="sbox sbox-g"><div class="sbox-l">Earned</div><div class="sbox-v" id="sv-e">$0</div></div>
+    </div>
+    <div class="sec"><div class="sec-hd"><span class="sec-rule"></span><span class="sec-lbl">Campaigns</span><span class="sec-rule"></span></div><div class="camp-stack" id="camp-list"></div></div>
+    <div class="sec">
+      <div class="sec-hd"><span class="sec-rule"></span><span class="sec-lbl">Earnings</span><span class="sec-rule"></span></div>
+      <div class="earn-tbl" id="earn-list"></div>
+      <div class="tot-trio">
+        <div class="tot-tile"><div class="tot-lbl">Earned</div><div class="tot-v tv-g" id="tv-e">$0</div></div>
+        <div class="tot-tile"><div class="tot-lbl">Remaining</div><div class="tot-v tv-a" id="tv-r">$0</div></div>
+        <div class="tot-tile"><div class="tot-lbl">Potential</div><div class="tot-v tv-p" id="tv-p">$0</div></div>
+      </div>
+    </div>
+    <div class="reset-wrap"><button class="reset-link" onclick="resetDay()">Reset for new day</button></div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="page hidden" id="pg-analytics">
+  <div class="pg-hdr">
+    <div class="hdr-l"><div class="pg-eye">Performance</div><div class="pg-ttl">Ana<em>lytics</em></div></div>
+    <div class="hdr-r">
+      <button class="ghost-btn" onclick="goTo('pg-splash','left')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Home</button>
+    </div>
+  </div>
+  <div class="scroll">
+    <div class="analytics-header">
+      <div class="platform-tabs">
+        <div class="ptab active-ig" id="tab-ig" onclick="switchPlatform('ig')">Instagram</div>
+        <div class="ptab" id="tab-tt" onclick="switchPlatform('tt')">TikTok</div>
+      </div>
+      <button class="add-perf-btn" onclick="openPerfModal()">Log video performance</button>
+      <div class="metrics-grid" id="metrics-grid"></div>
+      <div class="chart-card">
+        <div class="chart-title" id="chart-title">Views over time</div>
+        <div class="chart-wrap"><div style="position:relative;width:100%;height:180px"><canvas id="views-chart" role="img" aria-label="Views over time chart"></canvas></div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Engagement breakdown</div>
+        <div class="chart-wrap"><div style="position:relative;width:100%;height:180px"><canvas id="eng-chart" role="img" aria-label="Engagement breakdown chart"></canvas></div></div>
+      </div>
+      <div class="sec-hd" style="margin-bottom:10px"><span class="sec-rule"></span><span class="sec-lbl">Top performing videos</span><span class="sec-rule"></span></div>
+      <div class="top-video-list" id="top-videos"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page hidden" id="pg-settings">
+  <div class="pg-hdr">
+    <div class="hdr-l"><div class="pg-eye">Configure</div><div class="pg-ttl">Settings</div></div>
+    <div class="hdr-r"><button class="ghost-btn" onclick="goTo('pg-ugc','left')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Back</button></div>
+  </div>
+  <div class="scroll">
+    <div class="set-body">
+      <div class="set-g-lbl">Account</div>
+      <div id="acct-section"></div>
+      <div class="set-g-lbl" style="margin-top:4px">Campaigns</div>
+      <div id="set-list"></div>
+      <button class="add-c-btn" onclick="openCampModal()">Add campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="page hidden" id="pg-pay">
+  <div class="pg-hdr">
+    <div class="hdr-l"><div class="pg-eye">Finance</div><div class="pg-ttl">Pay<em>ments</em></div></div>
+    <div class="hdr-r"><button class="ghost-btn" onclick="goTo('pg-splash','left')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Home</button></div>
+  </div>
+  <div class="scroll">
+    <div class="pay-tiles">
+      <div class="pay-tile pt-r"><div class="pt-lbl">Received</div><div class="pt-val pv-s" id="ps-r">$0</div></div>
+      <div class="pay-tile pt-p"><div class="pt-lbl">Pending</div><div class="pt-val pv-a" id="ps-p">$0</div></div>
+      <div class="pay-tile pt-l"><div class="pt-lbl">Late</div><div class="pt-val pv-r" id="ps-l">$0</div></div>
+      <div class="pay-tile pt-m"><div class="pt-lbl">This month</div><div class="pt-val pv-k" id="ps-m">$0</div></div>
+    </div>
+    <button class="add-pay-btn" onclick="openPayModal()">Log a payment</button>
+    <div class="pay-entries" id="pay-entries"></div>
+  </div>
+</div>
+
+<!-- MODAL: CAMPAIGN -->
+<div class="overlay hidden" id="m-camp">
+  <div class="modal">
+    <div class="drag-pill"></div>
+    <div class="modal-title" id="mct">Add campaign</div>
+    <div class="mf"><label>Campaign name</label><input id="mf-n" type="text" placeholder="e.g. HeyNavii"></div>
+    <div class="mf2">
+      <div class="mf"><label>Videos / day</label><input id="mf-v" type="number" min="1" max="20" placeholder="2"></div>
+      <div class="mf"><label>Rate / video ($)</label><input id="mf-r" type="number" min="0" placeholder="200"></div>
+    </div>
+    <div class="mf2">
+      <div class="mf"><label>Start date</label><input id="mf-s" type="date"></div>
+      <div class="mf"><label>End date</label><input id="mf-e" type="date"></div>
+    </div>
+    <div class="mf"><label>Colour</label><div class="sw-row" id="swatches"></div></div>
+    <div class="modal-acts"><button class="m-cancel" onclick="closeM('m-camp')">Cancel</button><button class="m-save" onclick="saveCamp()">Save</button></div>
+  </div>
+</div>
+
+<!-- MODAL: PAYMENT -->
+<div class="overlay hidden" id="m-pay">
+  <div class="modal">
+    <div class="drag-pill"></div>
+    <div class="modal-title">Log payment</div>
+    <div class="mf"><label>Brand name</label><input id="pf-b" type="text" placeholder="e.g. HeyNavii, CodeRabbit..."></div>
+    <div class="mf2">
+      <div class="mf"><label>Amount ($)</label><input id="pf-a" type="number" min="0" placeholder="500"></div>
+      <div class="mf"><label>Date</label><input id="pf-d" type="date"></div>
+    </div>
+    <div class="mf"><label>Status</label><select id="pf-st"><option value="received">Received</option><option value="pending">Pending</option><option value="late">Late / unpaid</option></select></div>
+    <div class="mf"><label>Note (optional)</label><input id="pf-nt" type="text" placeholder="Invoice #, milestone..."></div>
+    <div class="modal-acts"><button class="m-cancel" onclick="closeM('m-pay')">Cancel</button><button class="m-save" onclick="savePay()">Save</button></div>
+  </div>
+</div>
+
+<!-- MODAL: LOG PERFORMANCE -->
+<div class="overlay hidden" id="m-perf">
+  <div class="modal">
+    <div class="drag-pill"></div>
+    <div class="modal-title">Log video performance</div>
+    <div class="mf"><label>Campaign</label><select id="prf-camp"></select></div>
+    <div class="mf2">
+      <div class="mf"><label>Platform</label><select id="prf-plat"><option value="ig">Instagram</option><option value="tt">TikTok</option></select></div>
+      <div class="mf"><label>Date posted</label><input id="prf-date" type="date"></div>
+    </div>
+    <div class="mf2">
+      <div class="mf"><label>Views</label><input id="prf-views" type="number" min="0" placeholder="50000"></div>
+      <div class="mf"><label>Likes</label><input id="prf-likes" type="number" min="0" placeholder="2000"></div>
+    </div>
+    <div class="mf2">
+      <div class="mf"><label>Comments</label><input id="prf-comments" type="number" min="0" placeholder="150"></div>
+      <div class="mf"><label>Shares / Reposts</label><input id="prf-shares" type="number" min="0" placeholder="80"></div>
+    </div>
+    <div class="mf"><label>Video note (optional)</label><input id="prf-note" type="text" placeholder="e.g. Talking head, CodeRabbit review..."></div>
+    <div class="modal-acts"><button class="m-cancel" onclick="closeM('m-perf')">Cancel</button><button class="m-save" onclick="savePerf()">Save</button></div>
+  </div>
+</div>
+
+<!-- Firebase + App -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2JnOosQRNFtE0O-tJmFTy3oOGGB5es1c",
+  authDomain: "ugc-tracker-87d50.firebaseapp.com",
+  projectId: "ugc-tracker-87d50",
+  storageBucket: "ugc-tracker-87d50.firebasestorage.app",
+  messagingSenderId: "654266923305",
+  appId: "1:654266923305:web:debf8010e2bc25e84b5f38"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const PALETTE = ["#c9a96e","#e85d6e","#e8a44a","#7ab89a","#6ab0d8","#9b7fe8","#e87a5d","#b8e04a","#5dc8d8","#e87ab8"];
+const DEFAULT_CAMPS = [
+  {id:"c1",name:"HeyNavii",vids:2,rate:200,color:"#e85d6e",start:"",end:""},
+  {id:"c2",name:"PicsArt Flow",vids:1,rate:0,color:"#9b7fe8",start:"",end:""},
+  {id:"c3",name:"PicsArt Normal",vids:2,rate:0,color:"#6ab0d8",start:"",end:""},
+  {id:"c4",name:"Manus",vids:2,rate:0,color:"#7ab89a",start:"",end:""},
+  {id:"c5",name:"Luel",vids:1,rate:180,color:"#e8a44a",start:"",end:""},
+  {id:"c6",name:"Sideshift",vids:1,rate:0,color:"#5dc8d8",start:"",end:""},
+];
+
+let currentUser = null;
+let unsubscribe = null;
+let appData = { camps: DEFAULT_CAMPS, state: {}, stateDay: "", pays: [], perfs: [] };
+let editCampId = null;
+let currentPlatform = "ig";
+let viewsChart = null;
+let engChart = null;
+
+const fmt = n => n===0?"$0":"$"+Math.round(n).toLocaleString();
+const fmtK = n => n>=1000000?(n/1000000).toFixed(1)+"M":n>=1000?(n/1000).toFixed(1)+"K":String(n);
+const todayKey = () => { const d=new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+const ld = (k,d) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d} };
+const sv = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} };
+
+// ── FIRESTORE SYNC ──
+async function loadFromFirestore(uid) {
+  const ref = doc(db, "users", uid);
+  unsubscribe = onSnapshot(ref, snap => {
+    if (snap.exists()) {
+      const data = snap.data();
+      appData.camps = data.camps || DEFAULT_CAMPS;
+      appData.pays = data.pays || [];
+      appData.perfs = data.perfs || [];
+      const today = todayKey();
+      if (data.stateDay === today) appData.state = data.state || {};
+      else { appData.state = {}; appData.camps.forEach(c=>{appData.state[c.id]=Array(c.vids).fill(false)}); }
+      appData.stateDay = today;
+      refreshAll();
+    } else {
+      appData = { camps: DEFAULT_CAMPS, state: {}, stateDay: todayKey(), pays: [], perfs: [] };
+      appData.camps.forEach(c=>{appData.state[c.id]=Array(c.vids).fill(false)});
+      saveToFirestore();
+      refreshAll();
+    }
+  });
+}
+
+async function saveToFirestore() {
+  if (!currentUser) { saveLocal(); return; }
+  try {
+    await setDoc(doc(db, "users", currentUser.uid), {
+      camps: appData.camps,
+      state: appData.state,
+      stateDay: appData.stateDay,
+      pays: appData.pays,
+      perfs: appData.perfs,
+      updatedAt: new Date().toISOString()
+    });
+  } catch(e) { saveLocal(); }
+}
+
+function saveLocal() {
+  sv("ugct_data", appData);
+}
+
+function loadLocal() {
+  const saved = ld("ugct_data", null);
+  if (saved) {
+    appData = saved;
+    if (appData.stateDay !== todayKey()) {
+      appData.state = {};
+      appData.stateDay = todayKey();
+      appData.camps.forEach(c=>{appData.state[c.id]=Array(c.vids).fill(false)});
+    }
+  }
+  appData.perfs = appData.perfs || [];
+}
+
+// ── AUTH ──
+window.signInGoogle = async function() {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) { console.error(e); }
+};
+
+window.doSignOut = async function() {
+  if (!confirm("Sign out?")) return;
+  if (unsubscribe) unsubscribe();
+  await signOut(auth);
+  currentUser = null;
+  loadLocal();
+  refreshAll();
+  renderAcctSection();
+};
+
+// Fallback: if Firebase never responds in 4s, load locally anyway
+const authTimeout = setTimeout(() => {
+  if (document.getElementById("pg-loading") && !document.getElementById("pg-loading").classList.contains("hidden")) {
+    console.warn("Firebase auth timeout — loading locally");
+    loadLocal();
+    document.getElementById("pg-loading").classList.add("hidden");
+    document.getElementById("pg-splash").classList.remove("hidden");
+    refreshAll();
+    renderAcctSection();
+  }
+}, 4000);
+
+onAuthStateChanged(auth, user => {
+  clearTimeout(authTimeout);
+  currentUser = user;
+  document.getElementById("pg-loading").classList.add("hidden");
+  document.getElementById("pg-splash").classList.remove("hidden");
+  if (user) {
+    loadFromFirestore(user.uid);
+  } else {
+    loadLocal();
+    refreshAll();
+  }
+  renderAcctSection();
+});
+
+function refreshAll() {
+  syncDayState();
+  renderPips();
+  if (!document.getElementById("pg-ugc").classList.contains("out-right") && !document.getElementById("pg-ugc").classList.contains("hidden")) updateUGC();
+  if (!document.getElementById("pg-settings").classList.contains("out-right") && !document.getElementById("pg-settings").classList.contains("hidden")) renderSettings();
+  if (!document.getElementById("pg-pay").classList.contains("out-right") && !document.getElementById("pg-pay").classList.contains("hidden")) renderPays();
+  if (!document.getElementById("pg-analytics").classList.contains("out-right") && !document.getElementById("pg-analytics").classList.contains("hidden")) renderAnalytics();
+}
+
+function syncDayState() {
+  const today = todayKey();
+  if (appData.stateDay !== today) {
+    appData.state = {};
+    appData.stateDay = today;
+  }
+  appData.camps.forEach(c => {
+    if (!appData.state[c.id]) appData.state[c.id] = Array(c.vids).fill(false);
+    if (appData.state[c.id].length !== c.vids) appData.state[c.id] = Array(c.vids).fill(false).map((_,i)=>appData.state[c.id][i]||false);
+  });
+}
+
+// ── NAVIGATION ──
+const PAGES = ["pg-loading","pg-splash","pg-ugc","pg-analytics","pg-settings","pg-pay"];
+window.goTo = function(id, dir) {
+  const cur = PAGES.find(p => {
+    const el = document.getElementById(p);
+    return el && !el.classList.contains("out-left") && !el.classList.contains("out-right") && !el.classList.contains("hidden");
+  });
+  if (cur === id) return;
+  if (cur) document.getElementById(cur).classList.add(dir==="right"?"out-left":"out-right");
+  const next = document.getElementById(id);
+  next.classList.remove("hidden","out-left","out-right");
+  if (id==="pg-ugc") { updateUGC(); if(!window._tick) window._tick=setInterval(updateUGC,30000); }
+  if (id==="pg-settings") renderSettings();
+  if (id==="pg-pay") renderPays();
+  if (id==="pg-analytics") renderAnalytics();
+  if (id==="pg-splash") renderPips();
+};
+
+// ── UGC TRACKER ──
+const totV = () => appData.camps.reduce((s,c)=>s+c.vids,0);
+const doneV = () => appData.camps.reduce((s,c)=>s+(appData.state[c.id]||[]).filter(Boolean).length,0);
+const earnV = () => appData.camps.reduce((s,c)=>s+(appData.state[c.id]||[]).filter(Boolean).length*c.rate,0);
+const potV = () => appData.camps.reduce((s,c)=>s+c.vids*c.rate,0);
+const hLeft = () => { const n=new Date(); return Math.max(0,23+(59/60)-n.getHours()-n.getMinutes()/60); };
+
+function updateUGC() {
+  const d=doneV(),tot=totV(),p=tot>0?d/tot:0,e=earnV(),pot=potV(),h=hLeft();
+  const now=new Date();
+  const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0");
+  document.getElementById("ugc-dow").textContent=DAYS[now.getDay()];
+  document.getElementById("ugc-date").innerHTML=`${MONTHS[now.getMonth()]} <em>${now.getDate()}</em>`;
+  document.getElementById("ugc-clock").textContent=`${hh}:${mm} · ${h.toFixed(1)}h remaining`;
+  document.getElementById("h-pct").innerHTML=Math.round(p*100)+'<em>%</em>';
+  document.getElementById("h-frac").textContent=`${d}/${tot}`;
+  document.getElementById("h-earn").textContent=fmt(e)+" earned today";
+  const pf=document.getElementById("prog");
+  pf.style.width=Math.round(p*100)+"%";
+  pf.className="prog-fill"+(p===1?"":h<3?" prog-danger":p<0.4&&now.getHours()>=15?" prog-warn":"");
+  document.getElementById("pl-l").textContent=`${d} done`;
+  document.getElementById("pl-r").textContent=`${tot-d} remaining`;
+  const st=d===tot?"ok":h<2?"danger":(h<5||p<0.4&&now.getHours()>=15)?"warn":"ok";
+  document.getElementById("ugc-chip").className=`sp sp-${st}`;
+  document.getElementById("chip-txt").textContent=d===tot?"All done":h<2?`${tot-d} overdue`:st==="warn"?"Behind pace":"On track";
+  document.getElementById("sv-d").textContent=d;
+  document.getElementById("sv-l").textContent=tot-d;
+  document.getElementById("sv-r").textContent=Math.round(p*100)+"%";
+  document.getElementById("sv-e").textContent=fmt(e);
+  const rem=getRem(d,tot,h,now.getHours(),p);
+  document.getElementById("rem-zone").innerHTML=rem?`<div class="rem rem-${rem.t}"><div class="rem-ico">${rem.i}</div><div><div class="rem-ttl">${rem.tl}</div><div class="rem-body">${rem.b}</div></div></div>`:"";
+  document.getElementById("tv-e").textContent=fmt(e);
+  document.getElementById("tv-r").textContent=fmt(pot-e);
+  document.getElementById("tv-p").textContent=fmt(pot);
+  renderCamps(); renderEarns();
+}
+
+function getRem(d,tot,h,hr,p) {
+  if(d===tot) return{t:"ok",i:"✓",tl:"All uploaded — exceptional.",b:"Every video checked off. Full earnings secured."};
+  if(h<2) return{t:"danger",i:"!",tl:`${tot-d} video${tot-d>1?"s":""} still missing`,b:"End of day. Upload now before today's earnings are lost."};
+  if(hr>=19) return{t:"warn",i:"~",tl:"Evening — wrap up your uploads",b:`${tot-d} remaining. Don't let today slip.`};
+  if(hr>=15&&p<0.5) return{t:"warn",i:"~",tl:"Afternoon — behind pace",b:`Only ${d}/${tot} uploaded. Push to finish.`};
+  if(hr>=12&&d===0) return{t:"warn",i:"~",tl:"Midday — no uploads yet",b:"Get started to stay on track."};
+  return null;
+}
+
+function renderCamps() {
+  const el=document.getElementById("camp-list"); el.innerHTML="";
+  appData.camps.forEach(c=>{
+    const cd=(appData.state[c.id]||[]).filter(Boolean).length,cp=c.vids?cd/c.vids:0,all=cd===c.vids;
+    const card=document.createElement("div");
+    card.className="camp-card"+(all?" done-all":"");
+    card.style.setProperty("--cc",c.color);
+    const bCls=cd===0?"cb-none":all?"cb-done":"cb-part";
+    const bTxt=cd===0?"Pending":all?"Done":`${cd}/${c.vids}`;
+    card.innerHTML=`
+      <div class="cc-r1"><div class="cc-name">${c.name}</div><span class="cc-bdg ${bCls}">${bTxt}</span></div>
+      <div class="cc-r2"><div class="cc-btr"><div class="cc-btf" style="width:${Math.round(cp*100)}%;background:${c.color}"></div></div><div class="cc-pct">${Math.round(cp*100)}%</div></div>
+      <div class="cc-r3">
+        <div>${c.rate?`<span class="cc-earn"><b>${fmt(cd*c.rate)}</b> / ${fmt(c.vids*c.rate)}</span>`:`<span class="cc-tbd">rate not set</span>`}</div>
+        <div class="vd-row" id="vdr-${c.id}"></div>
+      </div>`;
+    el.appendChild(card);
+    (appData.state[c.id]||Array(c.vids).fill(false)).forEach((on,i)=>{
+      const dot=document.createElement("div");
+      dot.className="vd"+(on?" on":""); dot.textContent=on?"✓":"·";
+      dot.onclick=()=>{
+        if(!appData.state[c.id]) appData.state[c.id]=Array(c.vids).fill(false);
+        appData.state[c.id][i]=!appData.state[c.id][i];
+        saveToFirestore(); updateUGC();
+      };
+      card.querySelector(`#vdr-${c.id}`).appendChild(dot);
+    });
+  });
+}
+
+function renderEarns() {
+  document.getElementById("earn-list").innerHTML=appData.camps.map(c=>{
+    const cd=(appData.state[c.id]||[]).filter(Boolean).length,e=cd*c.rate,left=(c.vids-cd)*c.rate;
+    return`<div class="earn-row"><span class="er-name">${c.name}</span><div class="er-r"><span class="er-got">${c.rate?fmt(e):"—"}</span>${c.rate&&left>0?`<span class="er-miss">–${fmt(left)}</span>`:""}${!c.rate?`<span class="er-tbd">rate TBD</span>`:""}</div></div>`;
+  }).join("");
+}
+
+window.resetDay = function() {
+  if(!confirm("Reset today's checkmarks?")) return;
+  appData.camps.forEach(c=>{appData.state[c.id]=Array(c.vids).fill(false)});
+  appData.stateDay=todayKey();
+  saveToFirestore(); updateUGC();
+};
+
+// ── SETTINGS ──
+function renderSettings() {
+  renderAcctSection();
+  const el=document.getElementById("set-list"); el.innerHTML="";
+  if(!appData.camps.length){el.innerHTML=`<p style="color:var(--fog);font-size:13px;font-style:italic;padding:10px 0 16px;font-family:var(--ff)">No campaigns yet.</p>`;return;}
+  const panel=document.createElement("div"); panel.className="set-panel";
+  appData.camps.forEach(c=>{
+    const row=document.createElement("div"); row.className="set-row";
+    row.innerHTML=`<div class="set-rl"><div class="set-stripe" style="background:${c.color}"></div><div><div class="set-cname">${c.name}</div><div class="set-cmeta">${c.vids} vid/day · ${c.rate?fmt(c.rate)+"/video":"rate TBD"}${c.start?" · "+c.start:""}</div></div></div><div class="set-acts"><button class="set-btn set-edit" onclick="openEditCamp('${c.id}')">Edit</button><button class="set-btn set-del" onclick="delCamp('${c.id}')">Delete</button></div>`;
+    panel.appendChild(row);
+  });
+  el.appendChild(panel);
+}
+
+function renderAcctSection() {
+  const el=document.getElementById("acct-section");
+  if(!el) return;
+  if(currentUser){
+    const initials=(currentUser.displayName||"U").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    el.innerHTML=`<div class="acct-card">${currentUser.photoURL?`<img class="acct-av" src="${currentUser.photoURL}" alt="avatar">`:`<div class="acct-av-ph">${initials}</div>`}<div class="acct-info"><div class="acct-name">${currentUser.displayName||"User"}</div><div class="acct-email">${currentUser.email}</div><div class="acct-sync" style="display:flex;align-items:center;gap:5px"><span class="sync-dot"></span><span class="sync-txt">Synced to cloud</span></div></div><button class="sign-out-btn" onclick="doSignOut()">Sign out</button></div>`;
+  } else {
+    el.innerHTML=`<div class="acct-card" style="flex-direction:column;align-items:flex-start;gap:10px"><div style="font-family:var(--ff);font-size:15px;color:var(--pale)">Not signed in</div><div style="font-size:12px;color:var(--fog);font-weight:300">Data saved locally. Sign in to sync across devices.</div><button class="g-btn" style="margin-top:2px" onclick="signInGoogle()"><svg class="g-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Sign in with Google</button></div>`;
+  }
+}
+
+window.openCampModal = function() {
+  editCampId=null; document.getElementById("mct").textContent="Add campaign";
+  ["mf-n","mf-v","mf-r","mf-s","mf-e"].forEach(id=>document.getElementById(id).value="");
+  buildSwatches(PALETTE[0]); document.getElementById("m-camp").classList.remove("hidden");
+};
+window.openEditCamp = function(id) {
+  editCampId=id; const c=appData.camps.find(x=>x.id===id); if(!c) return;
+  document.getElementById("mct").textContent="Edit campaign";
+  document.getElementById("mf-n").value=c.name; document.getElementById("mf-v").value=c.vids;
+  document.getElementById("mf-r").value=c.rate||""; document.getElementById("mf-s").value=c.start||"";
+  document.getElementById("mf-e").value=c.end||""; buildSwatches(c.color);
+  document.getElementById("m-camp").classList.remove("hidden");
+};
+function buildSwatches(sel) {
+  document.getElementById("swatches").innerHTML=PALETTE.map(c=>`<div class="sw${c===sel?" sel":""}" style="background:${c}" onclick="pickSw(this)"></div>`).join("");
+}
+window.pickSw = el => { document.querySelectorAll("#swatches .sw").forEach(s=>s.classList.remove("sel")); el.classList.add("sel"); };
+function getSelColor() { const s=document.querySelector("#swatches .sw.sel"); return s?s.style.background:PALETTE[0]; }
+
+window.saveCamp = function() {
+  const name=document.getElementById("mf-n").value.trim();
+  const vids=parseInt(document.getElementById("mf-v").value)||1;
+  const rate=parseFloat(document.getElementById("mf-r").value)||0;
+  const start=document.getElementById("mf-s").value,end=document.getElementById("mf-e").value;
+  const color=getSelColor();
+  if(!name){alert("Enter a campaign name.");return;}
+  if(editCampId){
+    const i=appData.camps.findIndex(c=>c.id===editCampId);
+    if(i>=0){appData.camps[i]={...appData.camps[i],name,vids,rate,color,start,end};if(!appData.state[editCampId]||appData.state[editCampId].length!==vids)appData.state[editCampId]=Array(vids).fill(false);}
+  } else {
+    const id="c"+Date.now(); appData.camps.push({id,name,vids,rate,color,start,end}); appData.state[id]=Array(vids).fill(false);
+  }
+  saveToFirestore(); closeM("m-camp"); renderSettings(); renderPips();
+};
+window.delCamp = function(id) {
+  if(!confirm("Delete this campaign?")) return;
+  appData.camps=appData.camps.filter(c=>c.id!==id); delete appData.state[id];
+  saveToFirestore(); renderSettings();
+};
+
+// ── ANALYTICS ──
+function renderAnalytics() {
+  renderMetrics(); renderCharts(); renderTopVideos();
+}
+window.switchPlatform = function(p) {
+  currentPlatform=p;
+  document.getElementById("tab-ig").className="ptab"+(p==="ig"?" active-ig":"");
+  document.getElementById("tab-tt").className="ptab"+(p==="tt"?" active-tt":"");
+  renderMetrics(); renderCharts(); renderTopVideos();
+};
+function getPerfs(plat) { return (appData.perfs||[]).filter(p=>p.plat===plat); }
+function renderMetrics() {
+  const perfs=getPerfs(currentPlatform);
+  const totalViews=perfs.reduce((s,p)=>s+p.views,0);
+  const totalLikes=perfs.reduce((s,p)=>s+p.likes,0);
+  const totalComments=perfs.reduce((s,p)=>s+p.comments,0);
+  const totalShares=perfs.reduce((s,p)=>s+p.shares,0);
+  const color=currentPlatform==="ig"?"var(--rose)":"var(--sky)";
+  document.getElementById("metrics-grid").innerHTML=`
+    <div class="met-card"><div class="met-lbl"><span class="met-dot" style="background:${color}"></span>Total views</div><div class="met-val">${fmtK(totalViews)}</div><div class="met-sub">${perfs.length} video${perfs.length!==1?"s":""} logged</div></div>
+    <div class="met-card"><div class="met-lbl"><span class="met-dot" style="background:#e87ab8"></span>Total likes</div><div class="met-val">${fmtK(totalLikes)}</div><div class="met-sub">avg ${perfs.length?fmtK(Math.round(totalLikes/perfs.length)):0}/video</div></div>
+    <div class="met-card"><div class="met-lbl"><span class="met-dot" style="background:var(--amb)"></span>Comments</div><div class="met-val">${fmtK(totalComments)}</div><div class="met-sub">avg ${perfs.length?fmtK(Math.round(totalComments/perfs.length)):0}/video</div></div>
+    <div class="met-card"><div class="met-lbl"><span class="met-dot" style="background:var(--sage)"></span>Shares</div><div class="met-val">${fmtK(totalShares)}</div><div class="met-sub">avg ${perfs.length?fmtK(Math.round(totalShares/perfs.length)):0}/video</div></div>`;
+}
+function renderCharts() {
+  const perfs=[...getPerfs(currentPlatform)].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
+  const labels=perfs.map(p=>p.date?new Date(p.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):"—");
+  const color=currentPlatform==="ig"?"#e85d6e":"#6ab0d8";
+  document.getElementById("chart-title").textContent=`Views over time · ${currentPlatform==="ig"?"Instagram":"TikTok"}`;
+  if(viewsChart) viewsChart.destroy();
+  const vCtx=document.getElementById("views-chart").getContext("2d");
+  viewsChart=new Chart(vCtx,{type:"line",data:{labels:labels.length?labels:["No data"],datasets:[{label:"Views",data:perfs.length?perfs.map(p=>p.views):[0],borderColor:color,backgroundColor:color+"22",borderWidth:2,pointBackgroundColor:color,pointRadius:4,pointHoverRadius:6,fill:true,tension:.35}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#565656",font:{size:10},maxRotation:0},grid:{color:"rgba(255,255,255,0.04)"}},y:{ticks:{color:"#565656",font:{size:10},callback:v=>fmtK(v)},grid:{color:"rgba(255,255,255,0.04)"}}}}});
+  if(engChart) engChart.destroy();
+  const eCtx=document.getElementById("eng-chart").getContext("2d");
+  engChart=new Chart(eCtx,{type:"bar",data:{labels:labels.length?labels:["No data"],datasets:[{label:"Likes",data:perfs.length?perfs.map(p=>p.likes):[0],backgroundColor:"#e87ab888",borderRadius:4},{label:"Comments",data:perfs.length?perfs.map(p=>p.comments):[0],backgroundColor:"#e8a44a88",borderRadius:4},{label:"Shares",data:perfs.length?perfs.map(p=>p.shares):[0],backgroundColor:"#7ab89a88",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:"#565656",font:{size:10},maxRotation:0},grid:{display:false}},y:{stacked:true,ticks:{color:"#565656",font:{size:10},callback:v=>fmtK(v)},grid:{color:"rgba(255,255,255,0.04)"}}}}});
+}
+function renderTopVideos() {
+  const el=document.getElementById("top-videos");
+  const perfs=[...getPerfs(currentPlatform)].sort((a,b)=>b.views-a.views).slice(0,5);
+  if(!perfs.length){el.innerHTML=`<div class="no-data">No ${currentPlatform==="ig"?"Instagram":"TikTok"} videos logged yet.<br>Tap "+ Log video performance" above.</div>`;return;}
+  el.innerHTML="";
+  perfs.forEach((p,i)=>{
+    const camp=appData.camps.find(c=>c.id===p.campId)||{name:p.campId||"Unknown",color:"#888"};
+    const platCls=p.plat==="ig"?"tv-ig":"tv-tt";
+    const platLbl=p.plat==="ig"?"IG":"TT";
+    const dateStr=p.date?new Date(p.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):"—";
+    const engRate=p.views>0?((p.likes+p.comments+p.shares)/p.views*100).toFixed(1):0;
+    const card=document.createElement("div"); card.className="tv-card";
+    card.innerHTML=`<div class="tv-rank">${i+1}</div><div class="tv-info"><div class="tv-camp">${camp.name}${p.note?` — ${p.note}`:""}</div><div class="tv-date">${dateStr}</div></div><span class="tv-plat ${platCls}">${platLbl}</span><div class="tv-stats"><div class="tv-views">${fmtK(p.views)}</div><div class="tv-eng">${engRate}% eng.</div></div>`;
+    el.appendChild(card);
+  });
+}
+window.openPerfModal = function() {
+  const sel=document.getElementById("prf-camp");
+  sel.innerHTML=appData.camps.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("prf-plat").value=currentPlatform;
+  document.getElementById("prf-date").value=new Date().toISOString().split("T")[0];
+  ["prf-views","prf-likes","prf-comments","prf-shares","prf-note"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("m-perf").classList.remove("hidden");
+};
+window.savePerf = function() {
+  const campId=document.getElementById("prf-camp").value;
+  const plat=document.getElementById("prf-plat").value;
+  const date=document.getElementById("prf-date").value;
+  const views=parseInt(document.getElementById("prf-views").value)||0;
+  const likes=parseInt(document.getElementById("prf-likes").value)||0;
+  const comments=parseInt(document.getElementById("prf-comments").value)||0;
+  const shares=parseInt(document.getElementById("prf-shares").value)||0;
+  const note=document.getElementById("prf-note").value.trim();
+  if(!views){alert("Enter view count.");return;}
+  appData.perfs=appData.perfs||[];
+  appData.perfs.push({id:"pf"+Date.now(),campId,plat,date,views,likes,comments,shares,note});
+  saveToFirestore(); closeM("m-perf"); renderAnalytics();
+};
+
+// ── PAYMENTS ──
+function renderPays() {
+  const rec=appData.pays.filter(p=>p.status==="received").reduce((s,p)=>s+p.amount,0);
+  const pend=appData.pays.filter(p=>p.status==="pending").reduce((s,p)=>s+p.amount,0);
+  const late=appData.pays.filter(p=>p.status==="late").reduce((s,p)=>s+p.amount,0);
+  const now=new Date();
+  const month=appData.pays.filter(p=>{if(!p.date)return false;const d=new Date(p.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&p.status==="received";}).reduce((s,p)=>s+p.amount,0);
+  document.getElementById("ps-r").textContent=fmt(rec);
+  document.getElementById("ps-p").textContent=fmt(pend);
+  document.getElementById("ps-l").textContent=fmt(late);
+  document.getElementById("ps-m").textContent=fmt(month);
+  const wrap=document.getElementById("pay-entries"); wrap.innerHTML="";
+  if(!appData.pays.length){wrap.innerHTML=`<div class="empty-pay"><div class="empty-ico">$0</div><div class="empty-txt">No payments logged yet.<br>Tap "+ Log a payment" above.</div></div>`;return;}
+  const sorted=[...appData.pays].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  const groups={};
+  sorted.forEach(p=>{const d=p.date?new Date(p.date):new Date();const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;if(!groups[key])groups[key]={label:d.toLocaleString("default",{month:"long",year:"numeric"}),items:[]};groups[key].items.push(p);});
+  Object.values(groups).forEach(g=>{
+    wrap.innerHTML+=`<div class="mo-sep"><span class="mo-line"></span><span class="mo-lbl">${g.label}</span><span class="mo-line"></span></div>`;
+    g.items.forEach(p=>{
+      const sm={received:"pch-r",pending:"pch-p",late:"pch-l"};
+      const sl={received:"Received",pending:"Pending",late:"Late"};
+      const ac={received:"var(--sage)",pending:"var(--amb)",late:"var(--rose)"};
+      const dateStr=p.date?new Date(p.date).toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}):"—";
+      const entry=document.createElement("div"); entry.className="pay-entry";
+      entry.innerHTML=`<div class="pe-acc" style="background:${ac[p.status]}"></div><div class="pe-info"><div class="pe-brand">${p.brand}</div><div class="pe-date">${dateStr}</div>${p.note?`<div class="pe-note">${p.note}</div>`:""}</div><div class="pe-r"><div class="pe-amt">${fmt(p.amount)}</div><span class="pe-chip ${sm[p.status]}">${sl[p.status]}</span></div><div class="pe-del" onclick="delPay('${p.id}')">×</div>`;
+      wrap.appendChild(entry);
+    });
+    wrap.innerHTML+="<div style='height:4px'></div>";
+  });
+}
+window.openPayModal = function() {
+  ["pf-b","pf-a","pf-nt"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("pf-d").value=new Date().toISOString().split("T")[0];
+  document.getElementById("pf-st").value="received";
+  document.getElementById("m-pay").classList.remove("hidden");
+};
+window.savePay = function() {
+  const brand=document.getElementById("pf-b").value.trim();
+  const amount=parseFloat(document.getElementById("pf-a").value)||0;
+  const date=document.getElementById("pf-d").value;
+  const status=document.getElementById("pf-st").value;
+  const note=document.getElementById("pf-nt").value.trim();
+  if(!brand){alert("Enter a brand name.");return;}
+  if(!amount){alert("Enter an amount.");return;}
+  appData.pays.push({id:"p"+Date.now(),brand,amount,date,status,note});
+  saveToFirestore(); closeM("m-pay"); renderPays();
+};
+window.delPay = function(id) {
+  if(!confirm("Delete this payment?")) return;
+  appData.pays=appData.pays.filter(p=>p.id!==id);
+  saveToFirestore(); renderPays();
+};
+
+// ── HELPERS ──
+window.closeM = id => document.getElementById(id).classList.add("hidden");
+function renderPips() {
+  document.getElementById("splash-pips").innerHTML=appData.camps.slice(0,6).map(c=>`<span class="pip" style="color:${c.color};border-color:${c.color}44">${c.name}</span>`).join("");
+}
+
+// Analytics button on splash
+document.getElementById("pg-splash").querySelector(".s-ctas").insertAdjacentHTML("afterbegin",
+  `<button class="cta-ghost" style="margin-bottom:0" onclick="goTo('pg-analytics','right')">Analytics <span class="cta-arr">→</span></button>`
+);
+
+document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.add("hidden");}));
+</script>
+</body>
+</html>
